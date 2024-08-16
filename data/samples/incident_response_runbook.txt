@@ -1,0 +1,66 @@
+INCIDENT RESPONSE RUNBOOK
+Version: 3.2 | Last Updated: 2024-01
+
+INCIDENT CLASSIFICATION
+
+P1 - Critical
+Definition: Complete service outage or data loss affecting all customers.
+Response SLA: Acknowledge within 5 minutes. Bridge open within 15 minutes.
+Escalation: Page on-call engineer, on-call manager, VP Engineering simultaneously.
+Customer communication: Status page update within 20 minutes.
+
+P2 - High
+Definition: Significant degradation affecting more than 25% of customers or a critical workflow.
+Response SLA: Acknowledge within 15 minutes. Bridge open within 30 minutes.
+Escalation: Page on-call engineer. Escalate to manager if unresolved after 30 minutes.
+Customer communication: Status page update within 45 minutes.
+
+P3 - Medium
+Definition: Partial degradation affecting a minority of customers or a non-critical workflow.
+Response SLA: Acknowledge within 1 hour.
+Escalation: Assign to next available engineer. No overnight escalation required.
+
+P4 - Low
+Definition: Minor issue with minimal customer impact. Cosmetic bugs, logging gaps.
+Response SLA: Triage within next business day.
+
+DATABASE INCIDENT PROCEDURES
+
+P1 Database Outage
+1. Verify the outage is not a monitoring false-positive. SSH to at least two application nodes and confirm connection failures.
+2. Check PostgreSQL primary health: pg_ctl status, check pg_stat_activity for long-running locks.
+3. If primary is unresponsive, initiate failover to replica. Confirm replica lag was below 30 seconds before the incident.
+4. Update DNS/connection strings to point at the new primary.
+5. Verify application reconnection. Check application error rates drop within 2 minutes.
+6. Root cause analysis required within 48 hours.
+
+Escalation path for P1 database outage:
+- On-call DBA (first contact)
+- Infrastructure Lead
+- VP of Engineering
+- CTO if RTO exceeds 2 hours
+
+NETWORK INCIDENT PROCEDURES
+
+Packet loss or elevated latency:
+1. Confirm with traceroute and mtr from multiple PoPs.
+2. Check BGP session health on border routers.
+3. If single-region issue, redirect traffic via global load balancer.
+4. Contact upstream ISP if loss is on peering link.
+5. Document all changes in the incident ticket.
+
+COMMUNICATION TEMPLATES
+
+P1 Initial customer notification:
+"We are currently investigating an issue affecting [service]. Our team is actively working to resolve this. We will provide an update in 30 minutes."
+
+P1 Resolution notification:
+"The issue affecting [service] has been resolved as of [time]. All systems are operating normally. A full post-mortem will be published within 5 business days."
+
+POST-INCIDENT REVIEW
+
+Required for all P1 and P2 incidents.
+Template location: /runbooks/post-incident-review-template.md
+Owner: Incident commander assigns a primary author within 24 hours of resolution.
+Deadline: Draft published within 5 business days.
+Distribution: Engineering all-hands, affected customer success managers.
