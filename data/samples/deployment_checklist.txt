@@ -1,0 +1,66 @@
+DEPLOYMENT CHECKLIST
+Version: 1.8 | Owner: Platform Engineering
+
+PRE-DEPLOYMENT
+
+Code review:
+[ ] All changes have at least two approvals from engineers with write access to the target service.
+[ ] No open unresolved review comments.
+[ ] Merge commit from main is less than 24 hours old.
+
+Testing:
+[ ] Unit test coverage has not decreased from the baseline on main.
+[ ] Integration tests pass in the staging environment against a production-equivalent dataset.
+[ ] Load test completed if this release touches a hot path (> 5000 req/min).
+
+Database migrations:
+[ ] Migrations are backward compatible. Removal of columns or tables is a two-phase deploy.
+[ ] Migration has been dry-run on a staging database restored from the latest production snapshot.
+[ ] Estimated migration time documented. If > 60 seconds, use a zero-downtime strategy (pt-online-schema-change or pg_repack).
+[ ] Rollback migration script exists and has been tested.
+
+Configuration:
+[ ] No secrets are committed to source control.
+[ ] New environment variables are documented in .env.example.
+[ ] Feature flags are configured correctly for this release in the flag management service.
+
+DEPLOYMENT WINDOW
+
+Standard deployments: Monday to Thursday, 10:00–16:00 local time.
+Emergency deployments: Require approval from on-call manager and VP Engineering.
+Frozen periods: 48 hours before major commercial events. See the release calendar.
+
+DEPLOYMENT STEPS
+
+1. Notify #deployments Slack channel: service name, version, estimated duration, rollback plan.
+2. Verify all health checks are green in staging.
+3. Deploy to 5% canary. Monitor error rate and p99 latency for 10 minutes.
+4. If canary metrics are within 10% of baseline, proceed to 25% then 100%.
+5. If canary metrics degrade, execute rollback immediately. Do not wait.
+
+MONITORING DURING ROLLOUT
+
+Watch the following dashboards continuously:
+- Application error rate (target: < 0.1%)
+- p50, p95, p99 API latency (target: no increase > 20% over 5-minute baseline)
+- Database connection pool usage (target: < 70%)
+- Worker queue depth (target: < 500 items)
+
+Automatic rollback triggers (configured in deployment tooling):
+- Error rate > 1% for 3 consecutive minutes
+- p99 latency > 3x baseline for 2 consecutive minutes
+
+POST-DEPLOYMENT
+
+[ ] Health check endpoints return HTTP 200 on all instances.
+[ ] Smoke tests pass against production.
+[ ] Deployment noted in the changelog with version tag and commit SHA.
+[ ] Notify #deployments Slack channel: deployment complete, link to deployment record.
+
+ROLLBACK PROCEDURE
+
+1. Run: deploy rollback --service=<name> --to=<previous-version>
+2. Confirm the previous version is healthy within 5 minutes.
+3. If database migration was applied, run the rollback migration.
+4. Notify #deployments with rollback reason and timeline.
+5. Open a post-incident ticket to investigate the root cause before re-attempting.
